@@ -1,5 +1,6 @@
 from .device import Device
 from .keyboard import Keyboard
+from .tcp_sender import TcpSender
 
 try:
     from .spacemouse import SpaceMouse

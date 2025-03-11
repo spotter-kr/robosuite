@@ -89,6 +89,12 @@ if __name__ == "__main__":
         default=False,
         help="(DualSense Only)Reverse the effect of the x and y axes of the joystick.It is used to handle the case that the left/right and front/back sides of the view are opposite to the LX and LY of the joystick(Push LX up but the robot move left in your view)",
     )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=6080,
+        help="(TCP Only)Port to listen to for TCP, UDP connections",
+    )
     args = parser.parse_args()
 
     # Get controller config
@@ -158,8 +164,18 @@ if __name__ == "__main__":
             rot_sensitivity=args.rot_sensitivity,
             reverse_xy=args.reverse_xy,
         )
+    elif args.device == "tcp":
+        from robosuite.devices import TcpSender
+
+        device = TcpSender(
+            env=env,
+            pos_sensitivity=args.pos_sensitivity,
+            rot_sensitivity=args.rot_sensitivity,
+            tcp_port=args.port,
+            udp_port=args.port,
+        )
     else:
-        raise Exception("Invalid device choice: choose either 'keyboard' or 'spacemouse' or 'dualsense'.")
+        raise Exception("Invalid device choice: choose either 'keyboard' or 'spacemouse' or 'dualsense' or 'tcp'.")
 
     env.reset()
     cam_id = 0
