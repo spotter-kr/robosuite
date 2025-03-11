@@ -3,6 +3,9 @@ from annotated_types import Len
 from enum import Enum
 from pydantic import BaseModel
 
+class HelloMessage(BaseModel):
+    message: str
+
 class PoseMessage(BaseModel):
     pose: Annotated[List[float], Len(min_length=16, max_length=16)]
     gripperOpenAmount: float
