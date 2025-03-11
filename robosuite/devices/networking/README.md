@@ -16,6 +16,6 @@ Temporarily uses serialized JSON-encoded message.
 
 ## Acknowledgments
 
-This module is inspired by the following sources. Please refer to the works below:
+This module is based on the following sources. Please refer to the works below:
 
 - [trzy's robot-arm](https://github.com/trzy/robot-arm)
