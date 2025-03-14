@@ -10,6 +10,7 @@ from annotated_types import Len
 import numpy as np
 import asyncio
 import platform
+from copy import deepcopy
 
 from pynput.keyboard import Controller, Key, Listener
 
@@ -17,7 +18,7 @@ from robosuite.utils.log_utils import ROBOSUITE_DEFAULT_LOGGER
 
 import robosuite.macros as macros
 from robosuite.devices import Device
-from robosuite.utils.transform_utils import mat2euler
+from robosuite.utils.transform_utils import mat2euler, mat2pose, pose2mat, quat2mat
 
 from robosuite.devices.networking import (
     Session, 
@@ -64,7 +65,8 @@ class TcpSender(Device, MessageHandler):
         self.pos_sensitivity = pos_sensitivity
         self.rot_sensitivity = rot_sensitivity
 
-        self.pose = np.eye(4)
+        self._pose = DEFAULT_POSE
+        self._prev_pose = DEFAULT_POSE
 
         self._display_controls()
 
@@ -117,7 +119,8 @@ class TcpSender(Device, MessageHandler):
         Resets internal state of controller, except for the reset signal.
         """
         super()._reset_internal_state()
-        self.pose = np.eye(4)
+        self._pose = DEFAULT_POSE
+        self._prev_pose = DEFAULT_POSE
         # Reset control
         self._control = np.zeros(6)
         # Reset grasp
@@ -134,19 +137,27 @@ class TcpSender(Device, MessageHandler):
 
     def get_controller_state(self):
         """
-        Grabs the current state of the 3D mouse.
+        Grabs the current state of the controller.
 
         Returns:
             dict: A dictionary containing dpos, orn, unmodified orn, grasp, and reset
         """
-        DPOS_SENSITIVITY = 0.005
-        DROT_SENSITIVITY = 0.005
-        dpos = self.pose[:3,3] * DPOS_SENSITIVITY * self.pos_sensitivity
-        drotation = mat2euler(self.pose) * DROT_SENSITIVITY * self.rot_sensitivity
+        DPOS_SENSITIVITY = 200
+        DROT_SENSITIVITY = 10
+
+        dpose = np.matmul(
+            np.linalg.inv(pose2mat(self._prev_pose)), 
+            pose2mat(self._pose)
+        )
+        dpos = dpose[:3,3] * DPOS_SENSITIVITY * self.pos_sensitivity
+        drotation = mat2euler(dpose) * DROT_SENSITIVITY * self.rot_sensitivity
+
+        # print(self._pose)
+        print(dpos, drotation)
 
         return dict(
             dpos=dpos,
-            rotation=self.pose[:3,:3],
+            rotation=quat2mat(self._pose[1]),
             raw_drotation=drotation,
             grasp=self.control_gripper,
             reset=self._reset_state,
@@ -155,12 +166,22 @@ class TcpSender(Device, MessageHandler):
 
     @handler(PoseMessage)
     async def handle_PoseMessage(self, session: Session, msg: PoseMessage, timestamp: float):
+        if not self._receiving:
+            return
+        
         # Reshaping pose list outputs transposed transformation matrix
         pose_mat = np.array(msg.pose).reshape((4,4)).transpose()
 
-        axis_mat = np.eye(4)
-        axis_mat[1:3,1:3]=[[0,-1],[1,0]]
-        self.pose = np.matmul(axis_mat, pose_mat)
+        # ([x, y, z], [x, y, z, w])
+        pos, orn = mat2pose(pose_mat)
+        pose = ([pos[2], pos[0], pos[1]], [orn[0], orn[2], orn[-1], orn[3]])
+
+        if np.array_equal(self._prev_pose, DEFAULT_POSE):
+            self._prev_pose = deepcopy(pose)
+            self._pose = deepcopy(pose)
+        else:
+            self._prev_pose = deepcopy(self._pose)
+            self._pose = deepcopy(pose)
 
     @handler(HomePoseMessage)
     async def handle_HomePoseMessage(self, session: Session, msg: HomePoseMessage, timestamp: float):
