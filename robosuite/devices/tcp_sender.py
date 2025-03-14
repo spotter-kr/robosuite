@@ -216,8 +216,10 @@ class TcpSender(Device, MessageHandler):
         return dpos, drotation
 
     async def run(self):
-        tasks = [ self._tcp_server.run(), self._udp_server.run() ]
-        await asyncio.gather(*tasks)
+        await asyncio.gather(
+            self._tcp_server.run(),
+            self._udp_server.run()
+        )
 
     async def on_connect(self, session: Session):
         print("Connection from: %s" % session.remote_endpoint)
