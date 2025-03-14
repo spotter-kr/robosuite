@@ -28,8 +28,12 @@ from robosuite.devices.networking import (
     MessageHandler,
     HelloMessage, 
     PoseMessage, 
-    HomePoseMessage
+    HomePoseMessage,
+    BeginEpisodeMessage,
+    EndEpisodeMessage,
 )
+
+DEFAULT_POSE = ([0,0,0], [0,0,0,1])
 
 class TcpSender(Device, MessageHandler):
     """
@@ -163,6 +167,16 @@ class TcpSender(Device, MessageHandler):
         self._reset_state = 1
         self._enabled = False
         self._reset_internal_state()
+
+    @handler(BeginEpisodeMessage)
+    async def handle_BeginEpisodeMessage(self, session: Session, msg: BeginEpisodeMessage, timestamp: float):
+        self._receiving = True
+    
+    @handler(EndEpisodeMessage)
+    async def handle_EndEpisodeMessage(self, session: Session, msg: EndEpisodeMessage, timestamp: float):
+        self._receiving = False
+        self._prev_pose = DEFAULT_POSE
+        self._pose = DEFAULT_POSE
 
     @property
     def control(self):
