@@ -12,3 +12,9 @@ class PoseMessage(BaseModel):
 
 class HomePoseMessage(BaseModel):
     unused: Optional[int | None] = None # dummy field because Pydantic doesn't support empty models
+
+class BeginEpisodeMessage(BaseModel):
+    unused: Optional[int | None] = None # dummy field because Pydantic doesn't support empty models
+
+class EndEpisodeMessage(BaseModel):
+    unused: Optional[int | None] = None # dummy field because Pydantic doesn't support empty models
