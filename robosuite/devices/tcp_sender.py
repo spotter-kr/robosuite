@@ -67,14 +67,20 @@ class TcpSender(Device, MessageHandler):
         self.single_click_and_hold = False
 
         self.sessions = set()
+        self.tasks = []
 
         self._tcp_server = TCPServer(port=tcp_port, message_handler=self)
         self._udp_server = UDPServer(port=udp_port, message_handler=self)
         self._reset_state = 0
         self._enabled = False
+        self._receiving = False
 
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.run())
+        loop = asyncio.new_event_loop()
+        self.tasks.append(loop.create_task(self.run()))
+        thread = threading.Thread(target=loop.run_forever, daemon=True)
+        thread.start()
+
+        print("TcpSender device opened")
 
         # also add a keyboard for aux controls
         self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
