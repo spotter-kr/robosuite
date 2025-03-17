@@ -172,7 +172,7 @@ class TcpSender(Device, MessageHandler):
 
         # ([x, y, z], [x, y, z, w])
         pos, orn = mat2pose(pose_mat)
-        pose = ([pos[2], pos[0], pos[1]], [orn[0], orn[2], orn[-1], orn[3]])
+        pose = ([pos[2], pos[0], pos[1]], [orn[0], orn[2], -orn[1], orn[3]])
 
         if np.array_equal(self._prev_pose, DEFAULT_POSE):
             self._prev_pose = deepcopy(pose)
