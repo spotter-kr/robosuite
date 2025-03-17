@@ -70,8 +70,6 @@ class TcpSender(Device, MessageHandler):
 
         self._display_controls()
 
-        self.single_click_and_hold = False
-
         self.sessions = set()
         self.tasks = []
 
@@ -121,10 +119,10 @@ class TcpSender(Device, MessageHandler):
         super()._reset_internal_state()
         self._pose = DEFAULT_POSE
         self._prev_pose = DEFAULT_POSE
-        # Reset control
-        self._control = np.zeros(6)
-        # Reset grasp
-        self.single_click_and_hold = False
+
+    @property
+    def grasp(self):
+        return self.grasp_states[self.active_robot][self.active_arm_index]
 
     def start_control(self):
         """
@@ -153,13 +151,13 @@ class TcpSender(Device, MessageHandler):
         drotation = mat2euler(dpose) * DROT_SENSITIVITY * self.rot_sensitivity
 
         # print(self._pose)
-        print(dpos, drotation)
+        # print(dpos, drotation, self.grasp)
 
         return dict(
             dpos=dpos,
             rotation=quat2mat(self._pose[1]),
             raw_drotation=drotation,
-            grasp=self.control_gripper,
+            grasp=self.grasp,
             reset=self._reset_state,
             base_mode=int(self.base_mode),
         )
@@ -183,6 +181,8 @@ class TcpSender(Device, MessageHandler):
             self._prev_pose = deepcopy(self._pose)
             self._pose = deepcopy(pose)
 
+        self.grasp_states[self.active_robot][self.active_arm_index] = 1.0 if msg.gripperOpenAmount > 0 else 0.0
+
     @handler(HomePoseMessage)
     async def handle_HomePoseMessage(self, session: Session, msg: HomePoseMessage, timestamp: float):
         self._reset_state = 1
@@ -198,28 +198,6 @@ class TcpSender(Device, MessageHandler):
         self._receiving = False
         self._prev_pose = DEFAULT_POSE
         self._pose = DEFAULT_POSE
-
-    @property
-    def control(self):
-        """
-        Grabs current pose of controller
-
-        Returns:
-            np.array: 6-DoF control value
-        """
-        return np.array(self._control)
-
-    @property
-    def control_gripper(self):
-        """
-        Maps internal states into gripper commands.
-
-        Returns:
-            float: Whether we're using single click and hold or not
-        """
-        if self.single_click_and_hold:
-            return 1.0
-        return 0
 
     def on_press(self, key):
         """
