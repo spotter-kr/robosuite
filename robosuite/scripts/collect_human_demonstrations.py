@@ -321,7 +321,7 @@ if __name__ == "__main__":
     env_info = json.dumps(config)
 
     # wrap the environment with data collection wrapper
-    tmp_directory = "/tmp/{}".format(str(time.time()).replace(".", "_"))
+    tmp_directory = "human_demos/{}".format(str(time.time()).replace(".", "_"))
     env = DataCollectionWrapper(env, tmp_directory)
 
     # initialize device
@@ -349,6 +349,16 @@ if __name__ == "__main__":
             pos_sensitivity=args.pos_sensitivity,
             rot_sensitivity=args.rot_sensitivity,
             reverse_xy=args.reverse_xy,
+        )
+    elif args.device == 'tcp':
+        from robosuite.devices import TcpSender
+
+        device = TcpSender(
+            env=env,
+            pos_sensitivity=args.pos_sensitivity,
+            rot_sensitivity=args.rot_sensitivity,
+            tcp_port=6080,
+            udp_port=6080,
         )
     elif args.device == "mjgui":
         assert args.renderer == "mjviewer", "Mocap is only supported with the mjviewer renderer"
