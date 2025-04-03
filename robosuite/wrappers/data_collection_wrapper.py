@@ -10,9 +10,13 @@ import time
 import numpy as np
 import imageio
 
+import robosuite.macros as macros
 from robosuite.utils.mjcf_utils import save_sim_model
 from robosuite.wrappers import Wrapper
 
+# Set the image convention to opencv so that the images are automatically rendered "right side up" when using imageio
+# (which uses opencv convention)
+macros.IMAGE_CONVENTION = "opencv"
 
 class DataCollectionWrapper(Wrapper):
     def __init__(self, env, directory, collect_freq=1, flush_freq=100, record_video=False):
