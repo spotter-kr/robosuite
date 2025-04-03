@@ -8,13 +8,14 @@ import os
 import time
 
 import numpy as np
+import imageio
 
 from robosuite.utils.mjcf_utils import save_sim_model
 from robosuite.wrappers import Wrapper
 
 
 class DataCollectionWrapper(Wrapper):
-    def __init__(self, env, directory, collect_freq=1, flush_freq=100):
+    def __init__(self, env, directory, collect_freq=1, flush_freq=100, record_video=False):
         """
         Initializes the data collection wrapper.
 
@@ -23,6 +24,7 @@ class DataCollectionWrapper(Wrapper):
             directory (str): Where to store collected data.
             collect_freq (int): How often to save simulation state, in terms of environment steps.
             flush_freq (int): How frequently to dump data to disk, in terms of environment steps.
+            record_video (bool): Whether to record video of the simulation.
         """
         super().__init__(env)
 
@@ -46,6 +48,7 @@ class DataCollectionWrapper(Wrapper):
 
         # store logging directory for current episode
         self.ep_directory = None
+        self.video_writer = None
 
         # remember whether any environment interaction has occurred
         self.has_interaction = False
@@ -53,6 +56,9 @@ class DataCollectionWrapper(Wrapper):
         # some variables for remembering the current episode's initial state and model xml
         self._current_task_instance_state = None
         self._current_task_instance_xml = None
+
+        # record video if specified
+        self.record_video = record_video
 
     def _start_new_episode(self):
         """
@@ -102,6 +108,14 @@ class DataCollectionWrapper(Wrapper):
         print("DataCollectionWrapper: making folder at {}".format(self.ep_directory))
         os.makedirs(self.ep_directory)
 
+        if self.record_video:
+            if self.video_writer is not None:
+                self.video_writer.close()
+                self.video_writer = None
+
+            video_path = os.path.join(self.ep_directory, "video.mp4")
+            self.video_writer = imageio.get_writer(video_path, fps=30)
+
         # save the model xml
         xml_path = os.path.join(self.ep_directory, "model.xml")
         with open(xml_path, "w") as f:
@@ -135,6 +149,7 @@ class DataCollectionWrapper(Wrapper):
         )
         self.states = []
         self.action_infos = []
+
         self.successful = False
 
     def reset(self):
@@ -163,7 +178,7 @@ class DataCollectionWrapper(Wrapper):
                 - (bool) whether the current episode is completed or not
                 - (dict) misc information
         """
-        ret = super().step(action)
+        obs, reward, done, step_info = super().step(action)
         self.t += 1
 
         # on the first time step, make directories for logging
@@ -179,11 +194,16 @@ class DataCollectionWrapper(Wrapper):
             info["actions"] = np.array(action)
 
             # (if applicable) store absolute actions
-            step_info = ret[3]
             if "action_abs" in step_info.keys():
                 info["actions_abs"] = np.array(step_info["action_abs"])
 
             self.action_infos.append(info)
+
+            # record video if specified
+            if self.record_video and self.video_writer is not None:
+                frame = obs[self.env.render_camera[0]+"_image"]
+                self.video_writer.append_data(frame)
+
 
         # check if the demonstration is successful
         if self.env._check_success():
@@ -193,7 +213,7 @@ class DataCollectionWrapper(Wrapper):
         if self.t % self.flush_freq == 0:
             self._flush()
 
-        return ret
+        return obs, reward, done, step_info
 
     def close(self):
         """

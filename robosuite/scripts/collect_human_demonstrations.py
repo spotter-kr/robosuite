@@ -279,6 +279,14 @@ if __name__ == "__main__":
         default=False,
         help="(DualSense Only)Reverse the effect of the x and y axes of the joystick.It is used to handle the case that the left/right and front/back sides of the view are opposite to the LX and LY of the joystick(Push LX up but the robot move left in your view)",
     )
+    parser.add_argument(
+        "--record-video",
+        action="store_true",
+        default=False,
+        help="Record video of the demonstration",
+    )
+    parser.add_argument("--height", type=int, default=512)
+    parser.add_argument("--width", type=int, default=512)
     args = parser.parse_args()
 
     # Get controller config
@@ -307,10 +315,13 @@ if __name__ == "__main__":
         **config,
         has_renderer=True,
         renderer=args.renderer,
-        has_offscreen_renderer=False,
+        has_offscreen_renderer=True,
         render_camera=args.camera,
         ignore_done=True,
-        use_camera_obs=False,
+        use_camera_obs=True,
+        camera_names=args.camera,
+        camera_heights=args.height,
+        camera_widths=args.width,
         reward_shaping=True,
         control_freq=20,
     )
@@ -323,7 +334,7 @@ if __name__ == "__main__":
 
     # wrap the environment with data collection wrapper
     tmp_directory = "human_demos/{}".format(str(time.time()).replace(".", "_"))
-    env = DataCollectionWrapper(env, tmp_directory)
+    env = DataCollectionWrapper(env, tmp_directory, record_video=True)
 
     # initialize device
     if args.device == "keyboard":
