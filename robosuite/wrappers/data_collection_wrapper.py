@@ -8,6 +8,7 @@ import os
 import time
 
 import numpy as np
+import imageio
 
 from robosuite.utils.mjcf_utils import save_sim_model
 from robosuite.wrappers import Wrapper
