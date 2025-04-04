@@ -10,6 +10,8 @@ import time
 import numpy as np
 import imageio
 
+import torch
+
 import robosuite.macros as macros
 from robosuite.utils.mjcf_utils import save_sim_model
 from robosuite.wrappers import Wrapper
@@ -249,6 +251,24 @@ class DataCollectionWrapper(Wrapper):
                 frame = obs[self.env.render_camera[0]+"_image"]
                 self.video_writer.append_data(frame)
 
+            # record demonstration in lerobot format if specified
+            if self.lerobot:
+                observation_dict, action_dict = {}, {}
+
+                # camera_names = []
+                # for camera in camera_names:
+                #     image_ndarray = np.zeros((512, 512, 3), dtype=np.uint8)
+                #     observation_dict[f"observation.images.{camera}"] = torch.from_numpy(image_ndarray)
+
+                # Robot state
+                observation_dict["observation.state"] = torch.cat(state[:7])
+
+                # Robot state goal
+                action_dict["action"] = torch.cat(action)
+ 
+                task = "TODO"
+                frame = {**observation_dict, **action_dict, "task": task}
+                self.lerobot_dataset.add_frame(frame)
 
         # check if the demonstration is successful
         if self.env._check_success():
