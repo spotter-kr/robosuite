@@ -285,6 +285,12 @@ if __name__ == "__main__":
         default=False,
         help="Record video of the demonstration",
     )
+    parser.add_argument(
+        "--lerobot-dataset",
+        action="store_true",
+        default=False,
+        help="Record demonstration in LeRobotDataset format",
+    )
     parser.add_argument("--height", type=int, default=512)
     parser.add_argument("--width", type=int, default=512)
     args = parser.parse_args()
@@ -334,7 +340,7 @@ if __name__ == "__main__":
 
     # wrap the environment with data collection wrapper
     tmp_directory = "human_demos/{}".format(str(time.time()).replace(".", "_"))
-    env = DataCollectionWrapper(env, tmp_directory, record_video=True)
+    env = DataCollectionWrapper(env, tmp_directory, record_video=args.record_video, lerobot=args.lerobot_dataset)
 
     # initialize device
     if args.device == "keyboard":
