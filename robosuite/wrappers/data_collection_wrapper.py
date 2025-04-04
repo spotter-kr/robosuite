@@ -138,15 +138,11 @@ class DataCollectionWrapper(Wrapper):
         # create a directory with a timestamp
         t1, t2 = str(time.time()).split(".")
 
-        # create a lerobot dataset if specified
-        features = DEFAULT_LEROBOT_FEATURES
-
         if self.lerobot:
             self.lerobot_dataset = LeRobotDataset.create(
                 repo_id="robosuite",
                 fps=30,
                 root=self.directory,
-                features=features,
                 use_videos=True,
                 image_writer_processes=1,
                 image_writer_threads=1,
