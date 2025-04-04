@@ -14,12 +14,14 @@ import robosuite.macros as macros
 from robosuite.utils.mjcf_utils import save_sim_model
 from robosuite.wrappers import Wrapper
 
+from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
+
 # Set the image convention to opencv so that the images are automatically rendered "right side up" when using imageio
 # (which uses opencv convention)
 macros.IMAGE_CONVENTION = "opencv"
 
 class DataCollectionWrapper(Wrapper):
-    def __init__(self, env, directory, collect_freq=1, flush_freq=100, record_video=False):
+    def __init__(self, env, directory, collect_freq=1, flush_freq=100, record_video=False, lerobot=False):
         """
         Initializes the data collection wrapper.
 
@@ -63,6 +65,10 @@ class DataCollectionWrapper(Wrapper):
 
         # record video if specified
         self.record_video = record_video
+
+        # record demonstrations in lerobot format if specified
+        self.lerobot = lerobot
+        self.lerobot_dataset = None
 
     def _start_new_episode(self):
         """
