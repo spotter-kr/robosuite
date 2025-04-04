@@ -20,6 +20,30 @@ from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
 # (which uses opencv convention)
 macros.IMAGE_CONVENTION = "opencv"
 
+
+DEFAULT_LEROBOT_FEATURES = {
+    "next.reward": {
+        "dtype": "float32",
+        "shape": (1,),
+        "names": None,
+    },
+    "next.success": {
+        "dtype": "bool",
+        "shape": (1,),
+        "names": None,
+    },
+    "seed": {
+        "dtype": "int64",
+        "shape": (1,),
+        "names": None,
+    },
+    "timestamp": {
+        "dtype": "float32",
+        "shape": (1,),
+        "names": None,
+    },
+}
+
 class DataCollectionWrapper(Wrapper):
     def __init__(self, env, directory, collect_freq=1, flush_freq=100, record_video=False, lerobot=False):
         """
@@ -113,6 +137,21 @@ class DataCollectionWrapper(Wrapper):
 
         # create a directory with a timestamp
         t1, t2 = str(time.time()).split(".")
+
+        # create a lerobot dataset if specified
+        features = DEFAULT_LEROBOT_FEATURES
+
+        if self.lerobot:
+            self.lerobot_dataset = LeRobotDataset.create(
+                repo_id="robosuite",
+                fps=30,
+                root=self.directory,
+                features=features,
+                use_videos=True,
+                image_writer_processes=1,
+                image_writer_threads=1,
+            )
+
         self.ep_directory = os.path.join(self.directory, "ep_{}_{}".format(t1, t2))
         assert not os.path.exists(self.ep_directory)
         print("DataCollectionWrapper: making folder at {}".format(self.ep_directory))
