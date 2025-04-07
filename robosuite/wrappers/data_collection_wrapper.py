@@ -256,21 +256,22 @@ class DataCollectionWrapper(Wrapper):
 
             # record demonstration in lerobot format if specified
             if self.lerobot:
-                observation_dict, action_dict = {}, {}
-
-                # camera_names = []
-                # for camera in camera_names:
-                #     image_ndarray = np.zeros((512, 512, 3), dtype=np.uint8)
-                #     observation_dict[f"observation.images.{camera}"] = torch.from_numpy(image_ndarray)
+                observation_dict = {}
 
                 # Robot state
                 observation_dict["observation.state"] = torch.cat(state[:7])
 
-                # Robot state goal
-                action_dict["action"] = torch.cat(action)
+                # Images
+                for camera in self.env.render_camera:
+                    observation_dict[f"observation.images.{camera}"] = torch.cat(obs[camera + "_image"])
  
-                task = "TODO"
-                frame = {**observation_dict, **action_dict, "task": task}
+                task = "Task description string"
+
+                frame = {
+                    **observation_dict, 
+                    "action": torch.cat(action),
+                    "task": task,
+                }
                 self.lerobot_dataset.add_frame(frame)
 
         # check if the demonstration is successful
