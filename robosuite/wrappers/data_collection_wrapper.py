@@ -117,6 +117,9 @@ class DataCollectionWrapper(Wrapper):
         self._current_task_instance_xml = self.env.sim.model.get_xml()
         self._current_task_instance_state = np.array(self.env.sim.get_state().flatten())
 
+        if self.lerobot:
+            self.lerobot_dataset.save_episode()
+
         # trick for ensuring that we can play MuJoCo demonstrations back
         # deterministically by using the recorded actions open loop
         self.env.reset_from_xml_string(self._current_task_instance_xml)
