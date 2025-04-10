@@ -291,8 +291,8 @@ if __name__ == "__main__":
         default=False,
         help="Record demonstration in LeRobotDataset format",
     )
-    parser.add_argument("--height", type=int, default=512)
-    parser.add_argument("--width", type=int, default=512)
+    parser.add_argument("--height", type=int, default=84)
+    parser.add_argument("--width", type=int, default=84)
     args = parser.parse_args()
 
     # Get controller config
