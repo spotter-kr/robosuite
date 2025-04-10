@@ -34,16 +34,16 @@ DEFAULT_LEROBOT_FEATURES = {
         "shape": (1,),
         "names": None,
     },
-    "seed": {
-        "dtype": "int64",
-        "shape": (1,),
-        "names": None,
-    },
-    "timestamp": {
-        "dtype": "float32",
-        "shape": (1,),
-        "names": None,
-    },
+    # "seed": {
+    #     "dtype": "int64",
+    #     "shape": (1,),
+    #     "names": None,
+    # },
+    # "timestamp": {
+    #     "dtype": "float32",
+    #     "shape": (1,), # conflict occurs with episode_indices in LerobotDataset
+    #     "names": None,
+    # },
 }
 
 class DataCollectionWrapper(Wrapper):
@@ -144,10 +144,31 @@ class DataCollectionWrapper(Wrapper):
         t1, t2 = str(time.time()).split(".")
 
         if self.lerobot:
+            lerobot_dir = os.path.join(self.directory, 'lerobot')
+
+            features = DEFAULT_LEROBOT_FEATURES
+            for camera in self.env.render_camera:
+                features[f"observation.image.{camera}"] = {
+                    "dtype": "video",
+                    "names": ["height", "width", "channels"],
+                    "shape": [84, 84, 3]
+                }
+            features["action"] = {
+                "dtype": "float32", 
+                "shape": (7,), 
+                "names": None
+            }
+            features["observation.state"] = {
+                "dtype": "float32", 
+                "shape": (7,), 
+                "names": None
+            }
+
             self.lerobot_dataset = LeRobotDataset.create(
                 repo_id="robosuite",
                 fps=30,
-                root=self.directory,
+                features=features,
+                root=lerobot_dir,
                 use_videos=True,
                 image_writer_processes=1,
                 image_writer_threads=1,
@@ -259,18 +280,21 @@ class DataCollectionWrapper(Wrapper):
                 observation_dict = {}
 
                 # Robot state
-                observation_dict["observation.state"] = torch.cat(state[:7])
+                observation_dict["observation.state"] = torch.Tensor(state[:7])
 
                 # Images
                 for camera in self.env.render_camera:
-                    observation_dict[f"observation.images.{camera}"] = torch.cat(obs[camera + "_image"])
+                    observation_dict[f"observation.image.{camera}"] = torch.tensor(obs[camera + "_image"], dtype=torch.uint8)
  
                 task = "Task description string"
+                success = self.env._check_success()
 
                 frame = {
                     **observation_dict, 
-                    "action": torch.cat(action),
+                    "action": np.array(action, dtype=np.float32),
                     "task": task,
+                    "next.reward": np.array([reward], dtype=np.float32),
+                    "next.success": np.array([success], dtype=np.bool_),
                 }
                 self.lerobot_dataset.add_frame(frame)
 
