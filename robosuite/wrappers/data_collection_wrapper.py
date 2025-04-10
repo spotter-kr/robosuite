@@ -117,7 +117,7 @@ class DataCollectionWrapper(Wrapper):
         self._current_task_instance_xml = self.env.sim.model.get_xml()
         self._current_task_instance_state = np.array(self.env.sim.get_state().flatten())
 
-        if self.lerobot:
+        if self.lerobot and self.lerobot_dataset is not None:
             self.lerobot_dataset.save_episode()
 
         # trick for ensuring that we can play MuJoCo demonstrations back
@@ -250,6 +250,7 @@ class DataCollectionWrapper(Wrapper):
                 - (dict) misc information
         """
         obs, reward, done, step_info = super().step(action)
+        # print(obs)
         self.t += 1
 
         # on the first time step, make directories for logging
