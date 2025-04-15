@@ -96,53 +96,6 @@ class DataCollectionWrapper(Wrapper):
         self.lerobot = lerobot
         self.lerobot_dataset = None
 
-    def _start_new_episode(self):
-        """
-        Bookkeeping to do at the start of each new episode.
-        """
-
-        # flush any data left over from the previous episode if any interactions have happened
-        if self.has_interaction:
-            self._flush()
-
-        # timesteps in current episode
-        self.t = 0
-        self.has_interaction = False
-
-        # save the task instance (will be saved on the first env interaction)
-
-        # NOTE: was previously self.env.model.get_xml(). Was causing the following issue in rare cases:
-        # ValueError: Error: eigenvalues of mesh inertia violate A + B >= C
-        # switching to self.env.sim.model.get_xml() does not create this issue
-        self._current_task_instance_xml = self.env.sim.model.get_xml()
-        self._current_task_instance_state = np.array(self.env.sim.get_state().flatten())
-
-        if self.lerobot and self.lerobot_dataset is not None:
-            self.lerobot_dataset.save_episode()
-
-        # trick for ensuring that we can play MuJoCo demonstrations back
-        # deterministically by using the recorded actions open loop
-        self.env.reset_from_xml_string(self._current_task_instance_xml)
-        self.env.sim.reset()
-        self.env.sim.set_state_from_flattened(self._current_task_instance_state)
-        self.env.sim.forward()
-
-    def _on_first_interaction(self):
-        """
-        Bookkeeping for first timestep of episode.
-        This function is necessary to make sure that logging only happens after the first
-        step call to the simulation, instead of on the reset (people tend to call
-        reset more than is necessary in code).
-
-        Raises:
-            AssertionError: [Episode path already exists]
-        """
-
-        self.has_interaction = True
-
-        # create a directory with a timestamp
-        t1, t2 = str(time.time()).split(".")
-
         if self.lerobot:
             lerobot_dir = os.path.join(self.directory, 'lerobot')
 
@@ -174,6 +127,52 @@ class DataCollectionWrapper(Wrapper):
                 image_writer_threads=1,
             )
 
+    def _start_new_episode(self):
+        """
+        Bookkeeping to do at the start of each new episode.
+        """
+
+        # flush any data left over from the previous episode if any interactions have happened
+        if self.has_interaction:
+            self._flush()
+            if self.lerobot:
+                self.lerobot_dataset.save_episode()
+
+        # timesteps in current episode
+        self.t = 0
+        self.has_interaction = False
+
+        # save the task instance (will be saved on the first env interaction)
+
+        # NOTE: was previously self.env.model.get_xml(). Was causing the following issue in rare cases:
+        # ValueError: Error: eigenvalues of mesh inertia violate A + B >= C
+        # switching to self.env.sim.model.get_xml() does not create this issue
+        self._current_task_instance_xml = self.env.sim.model.get_xml()
+        self._current_task_instance_state = np.array(self.env.sim.get_state().flatten())
+
+        # trick for ensuring that we can play MuJoCo demonstrations back
+        # deterministically by using the recorded actions open loop
+        self.env.reset_from_xml_string(self._current_task_instance_xml)
+        self.env.sim.reset()
+        self.env.sim.set_state_from_flattened(self._current_task_instance_state)
+        self.env.sim.forward()
+
+    def _on_first_interaction(self):
+        """
+        Bookkeeping for first timestep of episode.
+        This function is necessary to make sure that logging only happens after the first
+        step call to the simulation, instead of on the reset (people tend to call
+        reset more than is necessary in code).
+
+        Raises:
+            AssertionError: [Episode path already exists]
+        """
+
+        self.has_interaction = True
+
+        # create a directory with a timestamp
+        t1, t2 = str(time.time()).split(".")
+
         self.ep_directory = os.path.join(self.directory, "ep_{}_{}".format(t1, t2))
         assert not os.path.exists(self.ep_directory)
         print("DataCollectionWrapper: making folder at {}".format(self.ep_directory))
@@ -185,7 +184,7 @@ class DataCollectionWrapper(Wrapper):
                 self.video_writer = None
 
             video_path = os.path.join(self.ep_directory, "video.mp4")
-            self.video_writer = imageio.get_writer(video_path, fps=30)
+            self.video_writer = imageio.get_writer(video_path, fps=30, macro_block_size=None)
 
         # save the model xml
         xml_path = os.path.join(self.ep_directory, "model.xml")
